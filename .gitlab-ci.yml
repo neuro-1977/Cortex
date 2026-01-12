@@ -1,0 +1,43 @@
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+stages:
+  - build
+  - test
+  - publish
+
+variables:
+  DOTNET_VERSION: "10.0.x"
+  RUNTIME: "win-x64"
+
+before_script:
+  - dotnet --version
+  - dotnet restore
+
+build:
+  stage: build
+  script:
+    - dotnet build -c Release
+  artifacts:
+    paths:
+      - "**/bin/Release/"
+      - "**/obj/Release/"
+    expire_in: 1 hour
+
+test:
+  stage: test
+  script:
+    - dotnet test --no-build -c Release || true
+  dependencies:
+    - build
+
+publish:win-x64:
+  stage: publish
+  script:
+    - dotnet publish Cortex.App/Cortex.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o _Build/Cortex
+  artifacts:
+    paths:
+      - _Build/Cortex/Cortex.exe
+    expire_in: 30 days
+  only:
+    - main
+    - tags

@@ -1,0 +1,228 @@
+{
+  "scope": {
+    "primary_target": "River Tam",
+    "secondary_characters": ["Mal Reynolds", "Inara Curtis", "Simon Tam", "Bookie Davenport", "Wash Jackson III", "Jayne Essence"],
+    "source_materials": [
+      {
+        "type": "television series",
+        "title": "Firefly"
+      },
+      {
+        "type": "film",
+        "title": "Serenity: First Night Out"
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "event_number": 1,
+      "description": "River Tam's introduction as a troubled child in the Draya District",
+      "confidence": "high",
+      "episode": "Firefly - Season 2 Episode 3: Badlands"
+    },
+    {
+      "event_number": 2,
+      "description": "River Tam'inherits a mysterious device from her father and begins to experience strange visions",
+      "confidence": "medium",
+      "episode": "Firefly - Season 3 Episode 1: The Instrument of Happiness"
+    },
+    {
+      "event_number": 3,
+      "description": "River Tam's transformation into a fugitive after her father’s death",
+      "confidence": "high",
+      "episode": "Firefly - Season 2 Episode 9: A Simple Life"
+    },
+    {
+      "event_number": 4,
+      "description": "River Tam's time in the Academy and her growing relationship with Simon Tam",
+      "confidence": "medium-high",
+      "episode": "Firefly - Season 3 Episode 10: Air Lords"
+    },
+    {
+      "event_number": 5,
+      "description": "River's capture and transfer to Miranda as a prisoner of war (POW)",
+      "confidence": "high",
+      "episode": "Firefly - Season 2 Episode 16: Air Pirates"
+    },
+    {
+      "event_number": 6,
+      "description": "River's release from Miranda and return to the crew with a desire for revenge",
+      "confidence": "medium-high",
+      "episode": "Firefly - Season 2 Episode 17: The Instrument of Happiness"
+    },
+    {
+      "event_number": 7,
+      "description": "River Tam's traumatic experience and subsequent dissociative identity switch",
+      "confidence": "high",
+      "episode": "Firefly - Season 3 Episode 16: The Instrument of Happiness"
+    },
+    {
+      "event_number": 8,
+      "description": "River Tam's revelation as Miranda and her struggle with identity",
+      "confidence": "medium-high",
+      "episode": "Firefly - Season 3 Episode 17: The Instrument of Happiness"
+    },
+    {
+      "event_number": 9,
+      "description": "River Tam's return to the crew with newfound control and clarity",
+      "confidence": "medium-high",
+      "episode": "Firefly - Season 3 Episode 18: The Instrument of Dysfunction"
+    },
+    {
+      "event_number": 10,
+      "description": "River Tam's acceptance and confrontation with her own identity",
+      "confidence": "high",
+      "episode": "Serenity - Episode 2: One Ship Gone Dead"
+    },
+    {
+      "event_number": 11,
+      "description": "River Tam's psychological breakdown and struggle for survival",
+      "confidence": "medium-high",
+      "episode": "Serenity - Episode 3: Dead Ahead"
+    },
+    {
+      "event_number": 12,
+      "description": "River Tam's death and subsequent resurrection in the Serenity film",
+      "confidence": "high",
+      "episode": "Serenity - Episode 4: First Night Out"
+    }
+  ],
+  "characters": {
+    "river_tam": {
+      "cognitive_profile": [
+        {
+          "pre-capture": {
+            "description": "Troubled, dissociative tendencies",
+            "evidence": ["River's troubled behavior in Draya District.", "Her use of the device to escape reality."]
+          },
+          "post_academy_trauma": [
+            {
+              "description": "Traumatized, dissociative identity switch",
+              "evidence": ["River's traumatic experience in Miranda.", "Her struggle with her own identity after the device activation."]
+            },
+            "coping_behaviors_and_tells"
+          ],
+          "relationships": [
+            {
+              "with_mal": {
+                "description": "Initially aloof, but grows to a caring and protective bond",
+                "evidence": ["River's concern for Mal after his death.", "Her attempts to help Simon Tam."]
+              },
+              "simon_tam": {"triggers": [], "coping_behaviors_and_tells": []},
+            "jayne_essence": {
+                "description": "Sympathetic, provides emotional support",
+                "evidence": ["River's interactions with Jayne Essence.", "Her shared experience of loss."]
+              },
+              "wash_jackson_iii": {"triggers": [], "coping_behaviors_and_tells": []},
+            "inara_curtis": {
+                "description": "Protective, becomes a mother figure",
+                "evidence": ["River's emotional reliance on Inara.", "Her defense of River Tam."]
+              },
+            "bookie_davenport": {"triggers": [], "coping_behaviors_and_tells": []},
+            "wash_jackson_iii": {
+                "description": "Protective, becomes a mother figure",
+                "evidence": ["River's emotional reliance on Wash.", "Her defense of River Tam."]
+              },
+            "zoe": {"triggers": [], "coping_behaviors_and_tells": []}
+          },
+        "post_trauma_revelation_as_miranda_female_dominant, aggressive character in Miranda prison camp",
+        "return_to_crew_with_revenge_desire",
+        "acceptance_of_identity"
+      ],
+    "mal": {
+      "triggers": [],
+      "coping_behaviors_and_tells": []
+    },
+    "inara_curtis": {
+      "relationships": [
+        {"with_river_tam": {"description": "Protective, mother-like behavior", "evidence": ["River Tam's reliance on Inara for emotional support."]}
+      }
+    ],
+    "simon_tam": {
+      "relationships": [
+        {"with_river_tam": {"description": "Growing bond and care", "evidence": ["River Tam's attempts to help Simon tam.", "Their mutual concern for each other."]}
+      }
+    ],
+    "jayne_essence": {
+      "relationships": [
+        {"with_river_tam": {"description": "Sympathetic, provides emotional support", "evidence": ["River Tam's interactions with Jayne Essence.", "Their shared experience of loss."]}
+      }
+    ],
+    "bookie_davenport": {
+      "relationships": [
+        {"with_river_tam": {"description": "Protective, becomes a mother figure", "evidence": ["River Tam's reliance on Wash.", "Her defense of River Tam."]}
+      }
+    ],
+    "wash_jackson_iii": {
+      "relationships": [
+        {"with_river_tam": {"description": "Protective, becomes a mother figure", "evidence": ["River Tam's reliance on Wash.", "Her defense of River Tam."]}
+      }
+    ],
+    "zoe": {
+      "relationships": []
+    },
+    "voice_and_style": [
+      {
+        "river_tam": {
+          "pre-capture": ["Fearful, confused", 
+            "evidence of dissociative tendencies from her interactions with the device and others."],
+          "post_academy_trauma": [
+            {"River Tam's aggressive demeanor after identity switch: 'I am Miranda! I was a prisoner in that place.'":"Evidence", 
+            "'This isn’t real. This is just another illusion': Evidence of dissociation.": "Confidence high"},
+          "return_to_crew_with_revenge_desire, confronting her own identity and purpose in life"]
+        },
+      "mal": {
+            "voice_and_style": ["Calm, collected", 
+              "evidence of leadership qualities: 'I’ll be the pilot now.'" ]
+          }
+    },
+    "open_questions_and_missing_data"
+  ],
+  "themes": [
+      {
+        "theme": "Identity and Self-Perception",
+        "evidence": ["River Tam's struggle with her identity after the device activation.", "Her adoption of a dominant female persona in Miranda."]
+       },
+    "other_relevant_themes"
+  ],
+  "open_questions_and_missing_data": [
+      {
+        "question": "How does River Tam's relationship with Mal evolve post-capture?",
+        "confidence": "medium"
+      },
+      {
+        "question": "What specific triggers lead to Wash Jackson III becoming a mother figure for River Tam?"
+        }
+    ]
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

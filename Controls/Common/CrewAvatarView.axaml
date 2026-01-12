@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Serenity.ViewModels"
+             x:Class="Serenity.Controls.CrewAvatarView"
+             x:DataType="vm:MainViewModel+CrewMember"
+             Width="64" Height="64">
+
+  <Border Name="Frame"
+          Classes="crewAvatarFrame"
+          Width="56" Height="56"
+          CornerRadius="18"
+          BorderThickness="2"
+          BorderBrush="{Binding AccentBrush}"
+          Background="#111"
+          ClipToBounds="True">
+    <Grid>
+      <Image Name="AvatarImage" Stretch="UniformToFill" />
+
+      <Border Background="#60000000" VerticalAlignment="Bottom" Height="18">
+        <TextBlock Text="{Binding Name}" FontSize="10" Margin="6,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

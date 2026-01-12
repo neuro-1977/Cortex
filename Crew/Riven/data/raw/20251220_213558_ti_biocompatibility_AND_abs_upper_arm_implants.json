@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Using biocompatible materials as substrate coating for electric field enhancement in tip-enhanced Raman spectroscopy",
+    "summary": "In this article, tip-enhanced Raman spectroscopy (TERS) is investigated as a precise method for analysis of biological samples. Using Finite Difference Time Domain (FDTD) simulation, it has been tried to design the required structures for analysis of these samples. At first, by comparing different TERS structures and considering the material, dimensions and other parameters in the simulation, the ideal structure is introduced from a physical point of view and considering the electric field enhancement. In the following, taking into possibility of the effect of environmental and chemical reactions during testing on biological samples, biocompatible materials are used as substrate coating in the simulation, and the effect of using these materials are investigated in comparison with the previous conditions. After performing the simulations, we concluded that Au, Cu and Ag have the highest electric field enhancement, respectively, and the presence of Au next to Cu, also Au and Cu next to Ag, leads to the enhancement of the electric field in them. In the following, we found that the material and thickness of the layer under the coating in the substrate and tip have a great effect on the enhancement. finally, using five biocompatible materials as a coating in the case of using the Au tip and substrate, which creates the most electric field enhancement, we saw that the use of biocompatible materials greatly reduces the enhancement and the use of these five materials does not differ much from each other. Anyway, the use of a 1 nm layer of biocompatible coating creates a much more favorable effect on enhancement than upper thicknesses.",
+    "published": "2024-02-20T09:05:28Z",
+    "link": "http://arxiv.org/abs/2402.12836v1"
+  },
+  {
+    "title": "Anticorrosion and biocompatibility of a functionalized layer formed on ZK60 Mg alloy via hydroxyl ion implantation",
+    "summary": "Magnesium and its alloys have aroused tremendous interests because of their promising mechanical properties and biocompatibility. However, their excessively fast corrosion rate hinders the development of Mg alloys in the biomedical fields. Inspired by conventional ion implantation, a less-toxic functional group (hydroxyl) is used as the ion source to bombard the ZK60 Mg alloy surface to form a functionalized oxide layer. This functionalized oxide layer significantly facilitates the corrosion resistance of the ZK60 Mg alloy substrate and the proliferation of MC3T3-E1 cells, which is confirmed by electrochemical, immersion, and in vitro cytocompatibility tests. In comparison with results of ZK60 alloy implanted with carboxyl ions in our previous work, it is concluded that hydroxyl-treated alloys exhibit slightly higher corrosion rate while better biocompatibility. In summary, less-toxic functional ion implantation can be an effective strategy for inhibiting corrosion of Mg alloy implants and promoting their biocompatibility.",
+    "published": "2021-05-06T10:12:55Z",
+    "link": "http://arxiv.org/abs/2105.02558v1"
+  },
+  {
+    "title": "Improvement in corrosion resistance and biocompatibility of AZ31 magnesium alloy by NH+2 ions",
+    "summary": "Magnesium alloys have been considered to be favorable biodegradable metallic materials used in orthopedic and cardiovascular applications. We introduce NH+2 to the AZ31 Mg alloy surface by ion implantation at the energy of 50 KeV with doses ranging from 1e16 ions/cm2 to 1e17 ions/cm2 to improve its corrosion resistance and biocompatibility. Surface morphology, mechanical properties, corrosion behavior and biocompatibility are studied in the experiments. The analysis confirms that the modified surface with smoothness and hydrophobicity significantly improves the corrosion resistance and biocompatibility while maintaining the mechanical property of the alloy.",
+    "published": "2019-10-29T13:41:19Z",
+    "link": "http://arxiv.org/abs/1910.13265v1"
+  },
+  {
+    "title": "Flexible and biocompatible microelectrode arrays fabricated by supersonic cluster beam deposition on SU-8",
+    "summary": "We fabricated highly adherent and electrically conductive micropatterns on SU-8 by supersonic cluster beam deposition (SCBD). This technique is based on the acceleration of neutral metallic nanoparticles produced in the gas phase. The kinetic energy acquired by the nanoparticles allows implantation in a SU-8 layer, thus producing a metal-polymer nanocomposite thin layer. The nanocomposite shows ohmic electrical conduction and it can also be used as an adhesion layer for further metallization with a metallic overlayer. We characterized the electrical conduction, adhesion and biocompatibility of microdevices obtained by SCBD on SU-8 demonstrating the compatibility of our approach with standard lift off technology on 4\" wafer. A self-standing and flexible Micro Electrode Array has been produced. Cytological tests with neuronal cell lines demonstrated an improved cell growth and a spontaneous confinement of cells on the nanocomposite layer.",
+    "published": "2010-10-06T22:51:09Z",
+    "link": "http://arxiv.org/abs/1010.1296v1"
+  }
+]

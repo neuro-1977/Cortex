@@ -1,0 +1,26 @@
+Create a River Research dossier run.
+
+RUN TOPIC: River Tam persona dossier (Firefly + Serenity film)
+- If anything is uncertain, say so explicitly.
+- Do not output long verbatim passages.
+- Output JSON following the model schema.
+
+Create a comprehensive, immersive research dataset from the Firefly universe (TV series + movie). Focus on characterization, thematic through-lines, and continuity.
+
+**Primary target:** River Tam — map her evolution (pre-capture → post-Academy trauma → Miranda revelations). Capture:
+- cognitive profile and behavior markers
+- triggers, tells, and coping behaviors
+- relationships (Mal, Simon, Kaylee, Jayne, Inara, Book, Wash, Zoe)
+- how her speech changes across key moments
+
+**Also include:** Mal, Inara, Simon, Book (and the crew) as supporting dossiers.
+
+**Timeline:** build an ordered timeline of major events and character beats (episode/film level), flagging uncertainty and continuity gaps.
+
+**Evidence discipline:** for each claim, include at least one evidence pointer: episode/film moment or scene description.
+
+**Copyright constraints:**
+- Do **not** output full transcripts or long verbatim passages.
+- If quoting, keep it very short (<= 90 chars) and only when needed.
+
+**Output:** JSON following the model’s default schema.

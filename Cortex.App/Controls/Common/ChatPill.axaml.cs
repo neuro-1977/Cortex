@@ -22,7 +22,6 @@ public partial class ChatPill : UserControl
     private Avalonia.Threading.DispatcherTimer? _waveformTimer;
     
     // Waveform performance optimization
-    private double _lastAudioLevel = 0;
     private DateTime _lastWaveformUpdate = DateTime.MinValue;
     private const double AudioLevelChangeThreshold = 0.05;
     private const int MinUpdateIntervalMs = 33;

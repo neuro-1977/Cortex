@@ -1,9 +1,8 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:fluent="clr-namespace:Avalonia.Themes.Fluent;assembly=Avalonia.Themes.Fluent"
-             xmlns:conv="clr-namespace:Serenity.Converters"
-             xmlns:helpers="clr-namespace:Serenity.Helpers"
-             x:Class="Serenity.App"
+             xmlns:conv="clr-namespace:Cortex.App.Converters"
+             x:Class="Cortex.App.App"
              RequestedThemeVariant="Dark">
   <Application.Resources>
     <conv:BoolToBrushConverter x:Key="BoolToBrushConverter" />
@@ -17,28 +16,20 @@
     <conv:InvertBoolConverter x:Key="InvertBoolConverter" />
     <conv:IsNotNullConverter x:Key="IsNotNullConverter" />
     <conv:IsGreaterThanZeroConverter x:Key="IsGreaterThanZeroConverter" />
-    <conv:IsGreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
     <conv:CrewSelectionConverter x:Key="CrewSelectionConverter" />
     <conv:CrewThumbnailConverter x:Key="CrewThumbnailConverter" />
     <conv:CrewIsSelectedConverter x:Key="CrewIsSelectedConverter" />
-    <conv:PodcastSegmentSelectionConverter x:Key="PodcastSegmentSelectionConverter" />
-    <conv:PlayPauseConverter x:Key="PlayPauseConverter" />
-    <conv:TimeSpanConverter x:Key="TimeSpanConverter" />
-    <conv:MuteIconConverter x:Key="MuteIconConverter" />
     <conv:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
     <conv:BoolToColorConverter x:Key="BoolToColorConverter" />
     <conv:BoolToThicknessConverter x:Key="BoolToThicknessConverter" />
     <conv:ChatAlignmentConverter x:Key="ChatAlignmentConverter" />
     <conv:ChatBubbleColorConverter x:Key="ChatBubbleColorConverter" />
     <conv:SlideProgressWidthConverter x:Key="SlideProgressWidthConverter" />
+    <conv:MicIconConverter x:Key="MicIconConverter" />
+    <conv:MicColorConverter x:Key="MicColorConverter" />
+    <conv:SpeakerIconConverter x:Key="SpeakerIconConverter" />
   </Application.Resources>
   <Application.Styles>
     <fluent:FluentTheme />
-    <StyleInclude Source="avares://Serenity/Styles/SerenityTheme.axaml" />
-    
-    <!-- Enable middle-click scroll for all ScrollViewers -->
-    <Style Selector="ScrollViewer">
-      <Setter Property="helpers:MiddleClickScrollBehavior.IsEnabled" Value="True" />
-    </Style>
   </Application.Styles>
 </Application>

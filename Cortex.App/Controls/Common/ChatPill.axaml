@@ -1,0 +1,264 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Cortex.App.ViewModels"
+             xmlns:conv="clr-namespace:Cortex.App.Converters"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="70"
+             x:Class="Cortex.App.Controls.Common.ChatPill"
+             x:DataType="vm:CortexViewModel">
+  <UserControl.Resources>
+    <conv:MicIconConverter x:Key="MicIconConverter"/>
+    <conv:MicColorConverter x:Key="MicColorConverter"/>
+    <conv:SpeakerIconConverter x:Key="SpeakerIconConverter"/>
+    <conv:InvertBoolConverter x:Key="InvertBoolConverter"/>
+  </UserControl.Resources>
+  
+  <Grid HorizontalAlignment="Center" Width="1100">
+    <!-- Background: Deep space-black gradient with cinematic lighting -->
+    <Border Background="#000000" 
+            CornerRadius="50" 
+            Height="70"
+            Opacity="0.95">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Offset="0" Color="#000000"/>
+          <GradientStop Offset="0.5" Color="#0a0a1a"/>
+          <GradientStop Offset="1" Color="#000000"/>
+        </LinearGradientBrush>
+      </Border.Background>
+    </Border>
+    
+    <!-- Glassmorphic Main Pill: Dark semi-transparent with iridescent overlay -->
+    <Border x:Name="ChatPillBorder" CornerRadius="50" 
+            Height="70"
+            BorderThickness="1"
+            BoxShadow="0 0 30 5 #00ffff40, 0 0 60 10 #ff00ff20, 0 4 20 0 #00000080">
+      <!-- Glassmorphic background layers -->
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Offset="0" Color="#1a1a2e80"/>
+          <GradientStop Offset="0.5" Color="#16213e90"/>
+          <GradientStop Offset="1" Color="#0f346080"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <Border.BorderBrush>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Offset="0" Color="#00ffff60"/>
+          <GradientStop Offset="0.5" Color="#ff00ff40"/>
+          <GradientStop Offset="1" Color="#00ffff60"/>
+        </LinearGradientBrush>
+      </Border.BorderBrush>
+      <Border.Styles>
+        <!-- Smooth transitions for all state changes -->
+        <Style Selector="Border#ChatPillBorder">
+          <Setter Property="Transitions">
+            <Transitions>
+              <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+              <BrushTransition Property="BorderBrush" Duration="0:0:0.3"/>
+            </Transitions>
+          </Setter>
+        </Style>
+      </Border.Styles>
+      
+        <Grid Margin="20,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Model Selection (glassmorphic) -->
+        <ComboBox x:Name="ComboModel" Grid.Column="0" 
+                  ItemsSource="{Binding AvailableModels, FallbackValue=[]}"
+                  SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                  Margin="0,0,15,0" 
+                  VerticalAlignment="Center" 
+                  Background="#1a1a2e60" 
+                  Foreground="#ffffff" 
+                  BorderBrush="#00ffff40" 
+                  BorderThickness="1"
+                  CornerRadius="20"
+                  FontSize="11" 
+                  HorizontalAlignment="Left" 
+                  MinWidth="140" 
+                  MaxWidth="160"
+                  Padding="12,8"
+                  Cursor="Hand"
+                  ToolTip.Tip="Select AI Model"/>
+        
+        <!-- Input TextBox - Capsule shape with glass material -->
+        <Border Grid.Column="1" 
+                CornerRadius="25" 
+                Background="#0a0a1a80"
+                BorderBrush="#00ffff30"
+                BorderThickness="1"
+                Margin="0,0,15,0"
+                Padding="20,0,50,0"
+                VerticalAlignment="Center"
+                Height="50"
+                BoxShadow="0 0 10 2 #00ffff20">
+          <Border.Styles>
+            <Style Selector="Border">
+              <Setter Property="Opacity" Value="0.9"/>
+              <Setter Property="Transitions">
+                <Transitions>
+                  <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+                  <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+                  <ThicknessTransition Property="BorderThickness" Duration="0:0:0.2"/>
+                </Transitions>
+              </Setter>
+            </Style>
+            <Style Selector="Border:focus-within">
+              <Setter Property="Opacity" Value="1.0"/>
+              <Setter Property="BorderBrush" Value="#00ffff60"/>
+              <Setter Property="BorderThickness" Value="1.5"/>
+            </Style>
+          </Border.Styles>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TxtInput" 
+                     Grid.Column="0"
+                     Grid.ColumnSpan="2"
+                     Text="{Binding ChatInput, Mode=TwoWay}" 
+                     Background="Transparent" 
+                     BorderThickness="0" 
+                     Foreground="#ffffff" 
+                     FontSize="13"
+                     Watermark="Type a message..."
+                     VerticalAlignment="Center"
+                     VerticalContentAlignment="Center"
+                     TextWrapping="NoWrap" 
+                     AcceptsReturn="False"
+                     KeyDown="TxtInput_KeyDown"/>
+          </Grid>
+        </Border>
+
+        <!-- Mic Toggle Button -->
+        <StackPanel Grid.Column="2" Orientation="Vertical" Spacing="4" VerticalAlignment="Center" Margin="10,0,10,0">
+          <ToggleButton x:Name="BtnMicMute" 
+                        Width="50" Height="50"
+                        CornerRadius="25"
+                        FontFamily="Segoe MDL2 Assets" 
+                        FontSize="20"
+                        Background="Transparent" 
+                        BorderThickness="2"
+                        Cursor="Hand"
+                        IsChecked="{Binding IsVoiceMuted, Mode=TwoWay}"
+                        ToolTip.Tip="{Binding IsVoiceMuted, Converter={StaticResource InvertBoolConverter}, ConverterParameter='Click to mute mic|Click to unmute mic'}">
+            <ToggleButton.Styles>
+              <Style Selector="ToggleButton">
+                <Setter Property="Opacity" Value="0.9"/>
+                <Setter Property="Transitions">
+                  <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                  </Transitions>
+                </Setter>
+              </Style>
+              <Style Selector="ToggleButton:pointerover">
+                <Setter Property="Opacity" Value="1.0"/>
+              </Style>
+              <Style Selector="ToggleButton:pressed">
+                <Setter Property="Opacity" Value="0.85"/>
+              </Style>
+            </ToggleButton.Styles>
+            <ToggleButton.BorderBrush>
+              <SolidColorBrush Color="{Binding IsVoiceMuted, Converter={StaticResource MicColorConverter}}"/>
+            </ToggleButton.BorderBrush>
+            <ToggleButton.Content>
+              <TextBlock Text="{Binding IsVoiceMuted, Converter={StaticResource MicIconConverter}}" 
+                        Foreground="{Binding IsVoiceMuted, Converter={StaticResource MicColorConverter}}"/>
+            </ToggleButton.Content>
+          </ToggleButton>
+          
+          <!-- Voice Status Text -->
+          <TextBlock Text="{Binding VoiceStatusText, FallbackValue='Idle'}" 
+                   FontSize="9" 
+                   FontWeight="SemiBold"
+                   Foreground="#00ff88"
+                   Opacity="0.8"
+                   HorizontalAlignment="Center"
+                   Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <!-- Speaker Toggle Button -->
+        <StackPanel Grid.Column="3" Orientation="Vertical" Spacing="4" VerticalAlignment="Center" Margin="0,0,10,0">
+          <ToggleButton x:Name="BtnSpeakerMute" 
+                        Width="50" Height="50"
+                        CornerRadius="25"
+                        FontFamily="Segoe MDL2 Assets" 
+                        FontSize="20"
+                        Background="Transparent" 
+                        BorderThickness="2"
+                        Cursor="Hand"
+                        IsChecked="{Binding IsTtsMuted, Mode=TwoWay}"
+                        ToolTip.Tip="{Binding IsTtsMuted, Converter={StaticResource InvertBoolConverter}, ConverterParameter='Click to mute speaker|Click to unmute speaker'}">
+            <ToggleButton.Styles>
+              <Style Selector="ToggleButton">
+                <Setter Property="Opacity" Value="0.9"/>
+                <Setter Property="Transitions">
+                  <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                  </Transitions>
+                </Setter>
+              </Style>
+              <Style Selector="ToggleButton:pointerover">
+                <Setter Property="Opacity" Value="1.0"/>
+              </Style>
+              <Style Selector="ToggleButton:pressed">
+                <Setter Property="Opacity" Value="0.85"/>
+              </Style>
+            </ToggleButton.Styles>
+            <ToggleButton.BorderBrush>
+              <SolidColorBrush Color="{Binding IsTtsMuted, Converter={StaticResource MicColorConverter}}"/>
+            </ToggleButton.BorderBrush>
+            <ToggleButton.Content>
+              <TextBlock Text="{Binding IsTtsMuted, Converter={StaticResource SpeakerIconConverter}}" 
+                        Foreground="{Binding IsTtsMuted, Converter={StaticResource MicColorConverter}}"/>
+            </ToggleButton.Content>
+          </ToggleButton>
+          
+          <!-- Speaker Status Text -->
+          <TextBlock Text="{Binding IsTtsMuted, Converter={StaticResource InvertBoolConverter}, ConverterParameter='Speaker|Muted'}" 
+                   FontSize="9" 
+                   FontWeight="SemiBold"
+                   Foreground="#00ff88"
+                   Opacity="0.8"
+                   HorizontalAlignment="Center"
+                   Margin="0,2,0,0"/>
+        </StackPanel>
+        
+        <!-- Send Button (glowing accent) -->
+        <Button x:Name="BtnSend" 
+              Grid.Column="4"
+              Margin="10,0,10,0"
+              Width="70" Height="50"
+              CornerRadius="25"
+              ToolTip.Tip="Send message (Enter)"
+              Click="BtnSend_Click">
+          <Button.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Offset="0" Color="#00ffff"/>
+              <GradientStop Offset="1" Color="#00ff7f"/>
+            </LinearGradientBrush>
+          </Button.Background>
+          <Button.BorderThickness>0</Button.BorderThickness>
+          <TextBlock Text="Send" 
+                    FontSize="12" 
+                    FontWeight="Bold" 
+                    Foreground="#000000" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"/>
+        </Button>
+
+        <!-- Waveform Display - Enhanced for holographic effect (on right) - Clickable to stop TTS -->
+        <Canvas x:Name="WaveformCanvas" Grid.Column="4" Width="50" Height="50" Margin="0,0,10,0" VerticalAlignment="Center" Cursor="Hand" PointerPressed="WaveformCanvas_PointerPressed" ToolTip.Tip="Click to stop TTS playback"/>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

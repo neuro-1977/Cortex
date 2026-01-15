@@ -54,6 +54,14 @@ public sealed partial class CortexViewModel : ObservableObject
     [ObservableProperty] private bool isVoiceListening = false;
     [ObservableProperty] private bool isTtsSpeaking = false;
     [ObservableProperty] private string voiceStatusText = "Idle";
+    
+    // Graph visualization properties
+    public bool IsGraphArtifact => SelectedArtifact?.Type == ArtifactType.MindMap;
+    [ObservableProperty] private double artifactGraphZoom = 1.0;
+    [ObservableProperty] private double artifactGraphOffsetX = 0;
+    [ObservableProperty] private double artifactGraphOffsetY = 0;
+    public ObservableCollection<Cortex.Core.Models.GraphNode> ArtifactGraphNodes { get; } = new();
+    public ObservableCollection<Cortex.Core.Models.GraphEdge> ArtifactGraphEdges { get; } = new();
 
     [ObservableProperty] private string videoFormat = "Detailed";
     public string[] AllVideoFormats { get; } = { "Brief", "Detailed", "Tutorial", "Documentary" };
@@ -133,11 +141,31 @@ public sealed partial class CortexViewModel : ObservableObject
     public bool ShowQuizOptions => SelectedArtifactType == ArtifactType.Quiz;
     public bool ShowInfographicOptions => SelectedArtifactType == ArtifactType.Infographic;
     public bool ShowMindMapOptions => SelectedArtifactType == ArtifactType.MindMap;
+    
+    // Artifact content properties
+    public Cortex.Core.Models.Slide? CurrentSlide => SelectedArtifactSlides.Count > CurrentSlideIndex && CurrentSlideIndex >= 0 ? SelectedArtifactSlides[CurrentSlideIndex] : null;
+    [ObservableProperty] private int currentSlideIndex = 0;
+    public ObservableCollection<Cortex.Core.Models.Slide> SelectedArtifactSlides { get; } = new();
+    public ObservableCollection<Cortex.Core.Models.AudioTurn> SelectedArtifactAudioTurns { get; } = new();
+    public ObservableCollection<Cortex.Core.Models.Slide> SelectedArtifactVideoSlides { get; } = new();
+    public ObservableCollection<Cortex.Core.Models.QuizQuestion> SelectedArtifactQuizQuestions { get; } = new();
+    public ObservableCollection<Cortex.Core.Models.FlashCard> SelectedArtifactFlashCards { get; } = new();
+    public ObservableCollection<object> SelectedArtifactDataTableRows { get; } = new();
+    public ObservableCollection<string> SelectedArtifactDataTableColumns { get; } = new();
+    public Cortex.Core.Models.Slide? CurrentInfographicVideoSlide => SelectedArtifactVideoSlides.Count > CurrentSlideIndex && CurrentSlideIndex >= 0 ? SelectedArtifactVideoSlides[CurrentSlideIndex] : null;
+    public int CurrentInfographicSlideIndexPlusOne => CurrentSlideIndex + 1;
+    public bool IsMarkdownArtifact => SelectedArtifact?.Type == ArtifactType.BriefingDoc;
 
     public CortexViewModel(DatabaseService? databaseService = null)
     {
-        _databaseService = databaseService ?? new DatabaseService();
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Cortex",
+            "cortex.db"
+        );
+        _databaseService = databaseService ?? new DatabaseService(dbPath);
         InitializeAvailableModels();
+        _ = LoadProjectAsync();
     }
 
     private void InitializeAvailableModels()
@@ -262,7 +290,7 @@ public sealed partial class CortexViewModel : ObservableObject
             });
         }
         catch (Exception ex) { ErrorHandlingService.HandleException(ex, $"CortexViewModel.Generate{type}"); Status = $"Error generating {type}: {ex.Message}"; }
-        finally { IsGeneratingMedia = false; }
+        finally { IsGeneratingMedia = false; GeneratingArtifactId = null; }
     }
 
     [RelayCommand]
@@ -281,7 +309,7 @@ public sealed partial class CortexViewModel : ObservableObject
                 var result = await _chat.ChatWithCitationsAsync(userMessage, Sources.Where(s => s.IncludeInContext).ToList(), CancellationToken.None);
                 if (result != null)
                 {
-                    var assistantMsg = new CortexChatMessage { Sender = "Serenity", Kind = "assistant", Message = result.ResponseText, Citations = result.Citations, Timestamp = DateTimeOffset.Now };
+                    var assistantMsg = new CortexChatMessage { Sender = "Cortex", Kind = "assistant", Message = result.ResponseText, Citations = result.Citations, Timestamp = DateTimeOffset.Now };
                     ChatHistory.Add(assistantMsg);
                     Status = "Response received";
                 }
@@ -379,6 +407,64 @@ public sealed partial class CortexViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(hostName)) return;
         if (SelectedVideoHosts.Contains(hostName)) SelectedVideoHosts.Remove(hostName);
         else if (SelectedVideoHosts.Count < 5) SelectedVideoHosts.Add(hostName);
+    }
+
+    private bool RequiresMediaGeneration(ArtifactType type)
+    {
+        return type is ArtifactType.VideoOverview or ArtifactType.AudioOverview or ArtifactType.SlideDeck;
+    }
+
+    private void StartMediaGenerationMonitoring(CortexArtifact artifact)
+    {
+        GeneratingArtifactId = artifact.Id;
+        // Media generation monitoring will be implemented when needed
+    }
+
+    [RelayCommand]
+    private async Task LoadProjectAsync()
+    {
+        try
+        {
+            var projects = await _store.LoadAsync();
+            if (projects.Count > 0)
+            {
+                CurrentProject = projects[0];
+                Sources.Clear();
+                Artifacts.Clear();
+                ChatHistory.Clear();
+                foreach (var src in CurrentProject.Sources) Sources.Add(src);
+                foreach (var art in CurrentProject.Artifacts) Artifacts.Add(art);
+                foreach (var msg in CurrentProject.ChatHistory) ChatHistory.Add(msg);
+                Status = $"Loaded project: {CurrentProject.Name}";
+            }
+            else
+            {
+                CurrentProject = new CortexProject { Name = "New Project" };
+                await _store.SaveProjectAsync(CurrentProject);
+                Status = "Created new project";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.LoadProject");
+            Status = $"Error loading project: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task SaveProjectAsync()
+    {
+        if (CurrentProject == null) return;
+        try
+        {
+            await _store.SaveProjectAsync(CurrentProject);
+            Status = "Project saved";
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.SaveProject");
+            Status = $"Error saving project: {ex.Message}";
+        }
     }
 }
 

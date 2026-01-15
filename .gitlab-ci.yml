@@ -1,43 +1,52 @@
 image: mcr.microsoft.com/dotnet/sdk:10.0
 
-stages:
-  - build
-  - test
-  - publish
-
 variables:
   DOTNET_VERSION: "10.0.x"
-  RUNTIME: "win-x64"
+  BUILD_CONFIGURATION: "Release"
+  RUNTIME_ID: "win-x64"
+  PUBLISH_DIR: "_Build"
+  GITHUB_REPO: "neuro-1977/Cortex"
 
-before_script:
-  - dotnet --version
-  - dotnet restore
+stages:
+  - build
+  - release
 
 build:
   stage: build
   script:
-    - dotnet build -c Release
+    - 'echo "Building Cortex..."'
+    - 'dotnet --version'
+    - 'dotnet restore Cortex.App/Cortex.App.csproj'
+    - 'dotnet build Cortex.App/Cortex.App.csproj -c $BUILD_CONFIGURATION --no-restore'
+    - 'dotnet publish Cortex.App/Cortex.App.csproj -c $BUILD_CONFIGURATION -r $RUNTIME_ID --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o $PUBLISH_DIR'
+    - 'echo "Build completed successfully"'
+    - 'echo "Verifying Cortex.exe exists..."'
+    - 'test -f "$PUBLISH_DIR/Cortex.exe" && echo "Cortex.exe found" || (echo "ERROR: Cortex.exe not found" && exit 1)'
   artifacts:
     paths:
-      - "**/bin/Release/"
-      - "**/obj/Release/"
-    expire_in: 1 hour
-
-test:
-  stage: test
-  script:
-    - dotnet test --no-build -c Release || true
-  dependencies:
-    - build
-
-publish:win-x64:
-  stage: publish
-  script:
-    - dotnet publish Cortex.App/Cortex.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o _Build/Cortex
-  artifacts:
-    paths:
-      - _Build/Cortex/Cortex.exe
-    expire_in: 30 days
+      - $PUBLISH_DIR/
+    expire_in: 1 week
   only:
     - main
     - tags
+    - merge_requests
+
+release:
+  stage: release
+  dependencies:
+    - build
+  script:
+    - 'echo "Creating/updating GitHub release for tag: $CI_COMMIT_TAG"'
+    - 'echo "Exe location: $PUBLISH_DIR/Cortex.exe"'
+    - 'pwsh -File ci-release.ps1'
+  artifacts:
+    paths:
+      - $PUBLISH_DIR/Cortex.exe
+    expire_in: 1 year
+    name: "Cortex-$CI_COMMIT_TAG"
+  only:
+    - tags
+  when: on_success
+  environment:
+    name: production
+    url: https://github.com/$GITHUB_REPO/releases

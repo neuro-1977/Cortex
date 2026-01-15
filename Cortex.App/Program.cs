@@ -12,7 +12,7 @@ internal static class Program
         try
         {
             // Initialize LibVLC for video avatars
-            Core.Initialize();
+            LibVLCSharp.Shared.Core.Initialize();
             
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args ?? Array.Empty<string>());
         }

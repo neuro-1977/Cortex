@@ -1,4 +1,4 @@
-using Serenity.Cortex.Core.Models;
+using Cortex.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Serenity.Cortex.Core.Persistence;
+namespace Cortex.Core.Persistence;
 
 public sealed class CortexStorageService
 {
@@ -382,3 +382,4 @@ public sealed class CortexStorageService
         public string? PreviewText { get; set; }
     }
 }
+

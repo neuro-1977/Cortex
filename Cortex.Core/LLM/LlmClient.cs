@@ -1,5 +1,5 @@
-using Serenity.Cortex.Core.Config;
-using Serenity.Cortex.Core.Helpers;
+using Cortex.Core.Config;
+using Cortex.Core.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Serenity.Cortex.Core.LLM;
+namespace Cortex.Core.LLM;
 
 public sealed class LlmClient : ILlmClient
 {
@@ -323,3 +323,4 @@ public sealed class LlmClient : ILlmClient
         return body;
     }
 }
+

@@ -1,0 +1,1276 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Cortex.App.ViewModels"
+             xmlns:models="clr-namespace:Cortex.Core.Models"
+             xmlns:core="clr-namespace:Cortex.Core.Models;assembly=Cortex.Core"
+             xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
+             xmlns:converters="clr-namespace:Cortex.App.Converters"
+             xmlns:controls="clr-namespace:Cortex.App.Controls.Common"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="Cortex.App.Views.CortexView"
+             x:DataType="vm:CortexViewModel">
+  <UserControl.Resources>
+    <converters:CrewThumbnailConverter x:Key="CrewThumbnailConverter"/>
+    <converters:CrewSelectionConverter x:Key="CrewSelectionConverter"/>
+    <converters:IsArtifactGeneratingMediaConverter x:Key="IsArtifactGeneratingMediaConverter"/>
+    <converters:EqualityConverter x:Key="EqualityConverter"/>
+    <converters:IsGreaterThanZeroConverter x:Key="IsGreaterThanZeroConverter"/>
+  </UserControl.Resources>
+  <Grid RowDefinitions="*,Auto" Margin="12">
+    <Grid Grid.Row="0" ColumnDefinitions="300,*,350" Margin="0,0,0,80">
+        <!-- 1. SOURCE BROWSER -->
+        <Border Grid.Column="0" Classes="panelFrame" Margin="0,0,12,0" Padding="16">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="SOURCES" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,15"/>
+                <Button DockPanel.Dock="Bottom" Content="+ ADD DOCUMENTS" Click="AddSource_Click" HorizontalAlignment="Stretch" Classes="accent"/>
+                
+                <ListBox ItemsSource="{Binding Sources}" 
+                         Background="Transparent" 
+                         BorderThickness="0"
+                         SelectionMode="Single">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="core:SourceDocument">
+                            <CheckBox IsChecked="{Binding IncludeInContext}" Content="{Binding Title}" Margin="0,2">
+                                <CheckBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open in Terminal"
+                                                  IsEnabled="False"/>
+                                        <MenuItem Header="Remove Source" 
+                                                 Command="{Binding $parent[UserControl].((vm:CortexViewModel)DataContext).DeleteSourceCommand}"
+                                                 CommandParameter="{Binding}"/>
+                                    </ContextMenu>
+                                </CheckBox.ContextMenu>
+                            </CheckBox>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- 2. MAIN PREVIEW AREA -->
+        <Border Grid.Column="1" Classes="panelFrame" Padding="0" Background="#0a0a0a">
+            <Panel>
+                <ScrollViewer x:Name="ArtifactViewer" IsVisible="{Binding !!SelectedArtifact}">
+                    <StackPanel Margin="30" Spacing="20">
+                        <TextBlock Text="{Binding SelectedArtifact.Title}" FontSize="24" FontWeight="Bold" Foreground="#00FF7F"/>
+                        
+                        <!-- Visual Artifact (MindMap/Infographic Graph) -->
+                        <Border Height="500" CornerRadius="8" Background="#111" 
+                                IsVisible="{Binding IsGraphArtifact}"
+                                BorderBrush="#333" BorderThickness="1">
+                            <Panel>
+                                <Panel>
+                                    <Panel.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform ScaleX="{Binding ArtifactGraphZoom}" ScaleY="{Binding ArtifactGraphZoom}"/>
+                                            <TranslateTransform X="{Binding ArtifactGraphOffsetX}" Y="{Binding ArtifactGraphOffsetY}"/>
+                                        </TransformGroup>
+                                    </Panel.RenderTransform>
+                                    <Canvas x:Name="ArtifactGraphCanvas" Background="#0a0a0a" 
+                                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                        <ItemsControl ItemsSource="{Binding ArtifactGraphNodes}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <Canvas />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="core:GraphNode">
+                                                    <Border Background="#222" BorderBrush="#00FF7F" BorderThickness="1" 
+                                                            CornerRadius="12" Padding="10,5" MinWidth="100" MaxWidth="200"
+                                                            Canvas.Left="{Binding X}" Canvas.Top="{Binding Y}">
+                                                        <TextBlock Text="{Binding Label}" TextAlignment="Center" TextWrapping="Wrap" FontSize="11" Foreground="#FFF"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Canvas>
+                                </Panel>
+                                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10" Spacing="5">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Button Content="RE-LAYOUT" FontSize="10" Padding="5,2" IsEnabled="False"/>
+                                        <Button Content="EXPORT" FontSize="10" Padding="5,2" Classes="accent" IsEnabled="False"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Button Content="ZOOM +" Click="ZoomIn_Click" FontSize="10" Padding="5,2"/>
+                                        <Button Content="ZOOM -" Click="ZoomOut_Click" FontSize="10" Padding="5,2"/>
+                                        <Button Content="RESET" Click="ResetZoom_Click" FontSize="10" Padding="5,2"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Panel>
+                        </Border>
+
+                        <!-- Slide Deck Viewer (Slideshow) -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.SlideDeck}}" Spacing="15">
+                            <Border Classes="panelFrame" Padding="0" Background="#000" CornerRadius="8" ClipToBounds="True" Height="600">
+                                <Grid>
+                                    <!-- Slide Image Background -->
+                                    <Image Source="{Binding CurrentSlide.VisualPath}" 
+                                           Stretch="UniformToFill" 
+                                           Opacity="0.35"
+                                           IsVisible="{Binding CurrentSlide.VisualPath, Converter={StaticResource IsNotNullConverter}}"/>
+                                    
+                                    <!-- Gradient Overlay for Better Text Readability -->
+                                    <Border>
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Offset="0" Color="#E0000000"/>
+                                                <GradientStop Offset="0.3" Color="#B0000000"/>
+                                                <GradientStop Offset="0.7" Color="#B0000000"/>
+                                                <GradientStop Offset="1" Color="#E0000000"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        
+                                        <!-- Slide Content with Improved Spacing -->
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="80,50" Spacing="40" MaxWidth="900">
+                                            <!-- Title with Improved Typography and Contrast -->
+                                            <TextBlock Text="{Binding CurrentSlide.Title}" 
+                                                       FontSize="48" 
+                                                       FontWeight="Bold" 
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="#00FF7F" 
+                                                       TextAlignment="Center"
+                                                       TextWrapping="Wrap"
+                                                       LineHeight="1.3"
+                                                       LetterSpacing="1"
+                                                       Margin="0,0,0,20">
+                                                <TextBlock.Effect>
+                                                    <DropShadowEffect Color="#000000" BlurRadius="12" OffsetX="0" OffsetY="3" Opacity="0.8"/>
+                                                </TextBlock.Effect>
+                                            </TextBlock>
+                                            
+                                            <!-- Content with Better Readability and Contrast -->
+                                            <TextBlock Text="{Binding CurrentSlide.Content}" 
+                                                       FontSize="22" 
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       FontWeight="Normal"
+                                                       TextWrapping="Wrap" 
+                                                       TextAlignment="Center" 
+                                                       Foreground="#FFFFFF"
+                                                       LineHeight="1.8"
+                                                       Opacity="1.0"
+                                                       MaxWidth="900"
+                                                       Margin="20,0">
+                                                <TextBlock.Effect>
+                                                    <DropShadowEffect Color="#000000" BlurRadius="8" OffsetX="0" OffsetY="2" Opacity="0.7"/>
+                                                </TextBlock.Effect>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Slide Number Indicator (Top Right) -->
+                                    <Border Background="#40000000" 
+                                            CornerRadius="0,8,0,8" 
+                                            Padding="15,8"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="0,0,0,0">
+                                        <TextBlock FontSize="12" 
+                                                   Foreground="#00FF7F" 
+                                                   Opacity="0.8"
+                                                   FontWeight="SemiBold">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} / {1}">
+                                                    <Binding Path="CurrentSlideIndex" Converter="{StaticResource IndexConverter}"/>
+                                                    <Binding Path="SelectedArtifactSlides.Count"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            
+                            <!-- Navigation Controls with Progress Bar -->
+                            <StackPanel Spacing="10" Margin="0,15,0,0">
+                                <!-- Progress Bar -->
+                                <Grid Height="4" Margin="0,0,0,5">
+                                    <Border Background="#333" CornerRadius="2" Height="4"/>
+                                    <ProgressBar Value="{Binding CurrentSlideIndex}" 
+                                                  Maximum="{Binding SelectedArtifactSlides.Count}"
+                                                  Foreground="#00FF7F"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Height="4"
+                                                  CornerRadius="2"
+                                                  IsIndeterminate="False"/>
+                                </Grid>
+                                
+                                <!-- Navigation Buttons -->
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Button Grid.Column="0" 
+                                            Content="◀ Previous" 
+                                            IsEnabled="False"
+                                            Padding="20,10"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            CornerRadius="6"/>
+                                    
+                                    <TextBlock Grid.Column="1" 
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontSize="13"
+                                               FontWeight="Medium"
+                                               Foreground="#00FF7F"
+                                               Opacity="0.8">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="Slide {0} of {1}">
+                                                <Binding Path="CurrentSlideIndex" Converter="{StaticResource IndexConverter}"/>
+                                                <Binding Path="SelectedArtifactSlides.Count"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    
+                                    <Button Grid.Column="2" 
+                                            Content="Next ▶" 
+                                            IsEnabled="False"
+                                            Padding="20,10"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            CornerRadius="6"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Audio Overview Viewer -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.AudioOverview}}" Spacing="20">
+                            <!-- Audio Player Controls -->
+                            <!-- Loading Frame (while media is generating) -->
+                            <Border Classes="panelFrame" Padding="20" Background="#1a1a1a" IsVisible="{Binding IsGeneratingMedia}">
+                                <StackPanel Spacing="12" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="⏳" FontSize="48" HorizontalAlignment="Center" Opacity="0.6"/>
+                                    <TextBlock Text="Generating audio..." FontSize="14" Foreground="#00FF7F" Opacity="0.8" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="This may take a few moments" FontSize="11" Opacity="0.5" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Audio Player (if audio exists) -->
+                            <Border Classes="panelFrame" Padding="20" Background="#1a1a1a" IsVisible="{Binding !!SelectedArtifact.FilePath, Converter={StaticResource InvertBoolConverter}, ConverterParameter={Binding IsGeneratingMedia}}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Audio Overview" FontSize="18" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,5"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                        <Button Content="▶ Play" IsEnabled="False" FontSize="12" Padding="10,5"/>
+                                        <Button Content="⏸ Pause" IsEnabled="False" FontSize="12" Padding="10,5"/>
+                                        <Button Content="⏹ Stop" IsEnabled="False" FontSize="12" Padding="10,5"/>
+                                        <Button Content="↻ Replay" IsEnabled="False" FontSize="12" Padding="10,5"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Ready" FontSize="10" Opacity="0.7" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Transcript Display -->
+                            <Border Classes="panelFrame" Padding="0" Background="#1a1a1a">
+                                <ScrollViewer x:Name="AudioTurnsScrollViewer" MaxHeight="600" VerticalScrollBarVisibility="Auto" Padding="15">
+                            <ItemsControl ItemsSource="{Binding SelectedArtifactAudioTurns}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="15" Margin="0,0,0,10" Padding="15" MaxWidth="600"
+                                                Background="{Binding Speaker, Converter={StaticResource ChatBgConverter}}"
+                                                    BorderBrush="{Binding IsPlaying, Converter={StaticResource BoolToColorConverter}, ConverterParameter=SpringGreen}"
+                                                    BorderThickness="{Binding IsPlaying, Converter={StaticResource BoolToThicknessConverter}}"
+                                                HorizontalAlignment="{Binding Speaker, Converter={StaticResource AlignmentConverter}}">
+                                            <StackPanel Spacing="5">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="{Binding Speaker}" FontWeight="Bold" FontSize="10" Opacity="0.7"/>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5">
+                                                            <Button Content="Preview" 
+                                                                FontSize="9" 
+                                                                Padding="5,2"
+                                                                IsEnabled="False"/>
+                                                            <Button Content="▶" 
+                                                                FontSize="10" 
+                                                                Padding="5,2"
+                                                                IsVisible="{Binding AudioPath, Converter={StaticResource IsNotNullConverter}}"
+                                                                IsEnabled="False"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Duration, StringFormat='Duration: {0:F1}s'}" 
+                                                               FontSize="8" 
+                                                               Opacity="0.5"
+                                                               IsVisible="{Binding Duration, Converter={StaticResource IsGreaterThanZeroConverter}}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Video Overview Viewer (Slideshow) -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.VideoOverview}}" Spacing="15">
+                            <!-- Selected Video Hosts Display -->
+                            <Border Classes="panelFrame" Padding="15" Margin="0,0,0,10">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="VIDEO HOSTS" FontSize="12" FontWeight="Bold" Foreground="#00FF7F" Opacity="0.8"/>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Height="90">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <ItemsControl ItemsSource="{Binding SelectedVideoHosts}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Width="70" Height="70" 
+                                                                BorderThickness="3"
+                                                                CornerRadius="6"
+                                                                Margin="0,0,10,0"
+                                                                BorderBrush="#00FF7F"
+                                                                Background="#1a1a1a">
+                                                            <StackPanel Spacing="2">
+                                                                <Image Source="{Binding ., Converter={StaticResource CrewThumbnailConverter}}" 
+                                                                       Width="50" Height="50" 
+                                                                       Stretch="UniformToFill"
+                                                                       HorizontalAlignment="Center"
+                                                                       Margin="0,2,0,0"/>
+                                                                <TextBlock Text="{Binding}" 
+                                                                          VerticalAlignment="Center" 
+                                                                          HorizontalAlignment="Center"
+                                                                          FontSize="8"
+                                                                          TextWrapping="Wrap"
+                                                                          Margin="2"
+                                                                          Foreground="#00FF7F"
+                                                                          TextAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </Border>
+                            
+                            <!-- Real Video Player (if MP4 exists) -->
+                            <Border Classes="panelFrame" Height="450" Background="#000" CornerRadius="8" ClipToBounds="True" IsVisible="{Binding !!SelectedArtifact.FilePath}">
+                                <TextBlock Text="Video Player" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#00FF7F"/>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding SelectedArtifactVideoSlides}" IsVisible="{Binding !SelectedArtifact.FilePath}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="panelFrame" Margin="0,0,0,20" Padding="0" Background="#000" CornerRadius="8" ClipToBounds="True">
+                                            <Grid Height="400">
+                                                <Image Source="{Binding VisualPath}" Stretch="UniformToFill" Opacity="0.6"/>
+                                                <Border Background="#AA000000">
+                                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40" Spacing="15">
+                                                        <TextBlock Text="{Binding Title}" FontSize="28" FontWeight="Bold" Foreground="#00FF7F" TextAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Content}" FontSize="16" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.9"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Quiz Viewer -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.Quiz}}" Spacing="15">
+                            <TextBlock Text="Quiz" FontSize="20" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,10"/>
+                            <ItemsControl ItemsSource="{Binding SelectedArtifactQuizQuestions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="core:QuizQuestion">
+                                        <Border Classes="panelFrame" Margin="0,0,0,15" Padding="20" Background="#1a1a1a">
+                                            <StackPanel Spacing="10">
+                                                        <TextBlock Text="{Binding Question}" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+                                                
+                                                <!-- Multiple Choice Options -->
+                                                <ItemsControl ItemsSource="{Binding Options}" 
+                                                              IsVisible="{Binding Options.Length, Converter={StaticResource IsGreaterThanZeroConverter}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="#2a2a2a" CornerRadius="4" Padding="10,5" Margin="0,0,0,5">
+                                                                <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                
+                                                <!-- Answer -->
+                                                <Border Background="#0a4d0a" CornerRadius="4" Padding="10" Margin="0,5,0,0">
+                                                    <StackPanel Spacing="5">
+                                                        <TextBlock Text="Answer:" FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding CorrectAnswer}" FontSize="14" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                
+                                                <!-- Explanation -->
+                                                <Border Background="#2a2a2a" CornerRadius="4" Padding="10" Margin="0,5,0,0">
+                                                    <StackPanel Spacing="5">
+                                                        <TextBlock Text="Explanation:" FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- FlashCards Viewer -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.Flashcards}}" Spacing="20">
+                            <TextBlock Text="Flash Cards" FontSize="20" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,5"/>
+                            <ItemsControl ItemsSource="{Binding SelectedArtifactFlashCards}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="core:FlashCard">
+                                        <Border Classes="panelFrame" Margin="0,0,0,15" Padding="20" Background="#1a1a1a" MinHeight="200">
+                                            <StackPanel Spacing="10">
+                                                <Button Content="Flip Card" 
+IsEnabled="False"
+                                                        CommandParameter="{Binding}"
+                                                        HorizontalAlignment="Right" Padding="10,5"/>
+                                                
+                                                <Border Background="#2a2a2a" CornerRadius="8" Padding="20" MinHeight="150">
+                                                    <StackPanel Spacing="10">
+                                                        <TextBlock Text="Front:" FontSize="11" Opacity="0.7" IsVisible="{Binding !IsFlipped}"/>
+                                                        <TextBlock Text="Back:" FontSize="11" Opacity="0.7" IsVisible="{Binding IsFlipped}"/>
+                                                        <TextBlock Text="{Binding Front}" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" IsVisible="{Binding !IsFlipped}"/>
+                                                        <TextBlock Text="{Binding Back}" FontSize="16" TextWrapping="Wrap" IsVisible="{Binding IsFlipped}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                
+                                                <Border Background="#1a1a1a" CornerRadius="4" Padding="10" IsVisible="{Binding IsFlipped}">
+                                                    <StackPanel Spacing="5">
+                                                        <TextBlock Text="Explanation:" FontSize="11" Opacity="0.7"/>
+                                                        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- DataTable Viewer -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.DataTable}}" Spacing="15">
+                            <TextBlock Text="Data Table" FontSize="20" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,10"/>
+                            <Border Classes="panelFrame" Padding="0" Background="#1a1a1a">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="600">
+                                    <DataGrid ItemsSource="{Binding SelectedArtifactDataTableRows}" 
+                                              AutoGenerateColumns="False"
+                                              GridLinesVisibility="All"
+                                              HeadersVisibility="Column"
+                                              Background="#1a1a1a"
+                                              Foreground="#fff"
+                                              BorderBrush="#333"
+                                              RowBackground="#1a1a1a"
+                                              >
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Header="Row #" Width="60" IsReadOnly="True">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource IndexConverter}}" 
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTemplateColumn Header="{Binding $parent[UserControl].((vm:CortexViewModel)DataContext).SelectedArtifactDataTableColumns[0]}" Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding .}" TextWrapping="Wrap" Padding="5"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Infographic Viewer (Slideshow) -->
+                        <StackPanel IsVisible="{Binding SelectedArtifact.Type, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static core:ArtifactType.Infographic}}" Spacing="15">
+                            <!-- Real Video Player (if MP4 exists) -->
+                            <Border Classes="panelFrame" Height="450" Background="#000" CornerRadius="8" ClipToBounds="True" IsVisible="{Binding !!SelectedArtifact.FilePath}">
+                                <TextBlock Text="Video Player" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#00FF7F"/>
+                            </Border>
+
+                            <!-- Slideshow View (when no video) -->
+                            <StackPanel IsVisible="{Binding !SelectedArtifact.FilePath}" Spacing="15">
+                                <Border Classes="panelFrame" Height="600" Background="#000" CornerRadius="8" ClipToBounds="True">
+                                    <Grid>
+                                        <Image Source="{Binding CurrentInfographicVideoSlide.VisualPath}" Stretch="UniformToFill" Opacity="0.6"/>
+                                        <Border Background="#AA000000">
+                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="40" Spacing="15">
+                                                <TextBlock Text="{Binding CurrentInfographicVideoSlide.Title}" FontSize="28" FontWeight="Bold" Foreground="#00FF7F" TextAlignment="Center"/>
+                                                <TextBlock Text="{Binding CurrentInfographicVideoSlide.Content}" FontSize="16" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.9"/>
+                                </StackPanel>
+                        </Border>
+                                    </Grid>
+                                </Border>
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+                                    <Button Grid.Column="0" Content="◀ Previous" IsEnabled="False" Padding="15,8" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Opacity="0.7">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="Slide {0} of {1}">
+                                                <Binding Path="CurrentInfographicSlideIndexPlusOne"/>
+                                                <Binding Path="SelectedArtifactVideoSlides.Count"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    <Button Grid.Column="2" Content="Next ▶" IsEnabled="False" Padding="15,8" FontSize="12"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Image Source="{Binding SelectedArtifact.VisualPath}" 
+                               Stretch="Uniform" 
+                               IsVisible="{Binding !!SelectedArtifact.VisualPath, Converter={StaticResource InvertBoolConverter}}"
+                               MaxHeight="500"/>
+                        
+                        <TextBox Text="{Binding SelectedArtifact.Content}" 
+                                 IsReadOnly="True" 
+                                 Background="Transparent" 
+                                 BorderThickness="0" 
+                                 TextWrapping="Wrap" 
+                                 FontFamily="Consolas"
+                                 FontSize="13"
+                                 IsVisible="{Binding IsMarkdownArtifact}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Panel>
+        </Border>
+
+        <!-- 3. REFINEMENT & LIBRARY -->
+        <Grid Grid.Column="2" RowDefinitions="Auto,*" Margin="12,0,0,0">
+            <!-- REFINEMENT PANEL -->
+            <Border Grid.Row="0" Classes="panelFrame" Padding="15" Margin="0,0,0,12">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="REFINEMENT OPTIONS" FontWeight="Bold" Foreground="#00FF7F"/>
+                    
+                    <!-- 3x3 Icon Grid for Media Types -->
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Generation Type" FontSize="10" Opacity="0.6" Margin="0,0,0,5"/>
+                        <Grid ColumnDefinitions="*,*,*" RowDefinitions="*,*,*,Auto">
+                            <!-- Row 1 -->
+                            <Panel Grid.Row="0" Grid.Column="0">
+                                <Button Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.AudioOverview}"
+                                        Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                        IsEnabled="{Binding IsGeneratingArtifact, Converter={StaticResource InvertBoolConverter}}">
+                                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                        <TextBlock Text="🎵" FontSize="20" HorizontalAlignment="Center" 
+                                                   IsVisible="{Binding IsGeneratingArtifact, Converter={StaticResource InvertBoolConverter}}"/>
+                                        <ProgressBar IsIndeterminate="True" Height="4" Width="30" 
+                                                     IsVisible="{Binding IsGeneratingArtifact}"
+                                                     HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Audio" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </Panel>
+                            <Panel Grid.Row="0" Grid.Column="1">
+                                <Button Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.SlideDeck}"
+                                        Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                        <TextBlock Text="📊" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Slides" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ShowOptionsForTypeCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.SlideDeck}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Width="24" Height="24" Padding="2"
+                                        Background="#333" BorderThickness="0"
+                                        Margin="2">
+                                    <TextBlock Text="✏️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Panel>
+                            
+                            <!-- Row 2 -->
+                            <Panel Grid.Row="1" Grid.Column="0">
+                                <Button Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.BriefingDoc}"
+                                        Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                        <TextBlock Text="📄" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Briefing" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ShowOptionsForTypeCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.BriefingDoc}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Width="24" Height="24" Padding="2"
+                                        Background="#333" BorderThickness="0"
+                                        Margin="2">
+                                    <TextBlock Text="✏️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Panel>
+                            <Panel Grid.Row="1" Grid.Column="1">
+                                <Button Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.MindMap}"
+                                        Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                        <TextBlock Text="🗺️" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Mind Map" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ShowOptionsForTypeCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.MindMap}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Width="24" Height="24" Padding="2"
+                                        Background="#333" BorderThickness="0"
+                                        Margin="2">
+                                    <TextBlock Text="✏️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Panel>
+                            <Button Grid.Row="1" Grid.Column="2" 
+                                    Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                    CommandParameter="{x:Static core:ArtifactType.Quiz}"
+                                    Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="❓" FontSize="20" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Quiz" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            
+                            <!-- Row 3 -->
+                            <Button Grid.Row="2" Grid.Column="0" 
+                                    Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                    CommandParameter="{x:Static core:ArtifactType.Flashcards}"
+                                    Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="🃏" FontSize="20" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Cards" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Row="2" Grid.Column="1" 
+                                    Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                    CommandParameter="{x:Static core:ArtifactType.DataTable}"
+                                    Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                    <TextBlock Text="📋" FontSize="20" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Table" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Panel Grid.Row="2" Grid.Column="2">
+                                <Button Command="{Binding GenerateArtifactDirectlyCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.Infographic}"
+                                        Padding="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                                        <TextBlock Text="📈" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Info" FontSize="9" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ShowOptionsForTypeCommand}" 
+                                        CommandParameter="{x:Static core:ArtifactType.Infographic}"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Width="24" Height="24" Padding="2"
+                                        Background="#333" BorderThickness="0"
+                                        Margin="2">
+                                    <TextBlock Text="✏️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </Panel>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5" IsVisible="{Binding ShowVideoOptions}">
+                        <TextBlock Text="Video Format" FontSize="10" Opacity="0.6"/>
+                        <ComboBox ItemsSource="{Binding AllVideoFormats}" 
+                                  SelectedItem="{Binding VideoFormat}" 
+                                  HorizontalAlignment="Stretch"/>
+                        <Separator Background="#333" Margin="0,5"/>
+                        <TextBlock Text="VIDEO HOSTS (Up to 5)" FontWeight="Bold" FontSize="11" Opacity="0.8"/>
+                        <CheckBox IsChecked="{Binding UseLipSync}" Content="Use Lip Sync" FontSize="12"/>
+                        <TextBlock Text="Select Hosts:" FontSize="10" Opacity="0.6" Margin="0,5,0,0"/>
+                        <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="3">
+                                <CheckBox Content="Jax" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Jax}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Jax"/>
+                                <CheckBox Content="Zara" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Zara}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Zara"/>
+                                <CheckBox Content="Dash" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Dash}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Dash"/>
+                                <CheckBox Content="Brock" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Brock}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Brock"/>
+                                <CheckBox Content="Inara" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Inara}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Inara"/>
+                                <CheckBox Content="Elias" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Elias}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Elias"/>
+                                <CheckBox Content="Riven" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Riven}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Riven"/>
+                                <CheckBox Content="Reverend" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Reverend}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Reverend"/>
+                                <CheckBox Content="Serenity" IsChecked="{Binding SelectedVideoHosts, Converter={StaticResource ContainsConverter}, ConverterParameter=Serenity}" Command="{Binding ToggleVideoHostCommand}" CommandParameter="Serenity"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                        <TextBlock Text="{Binding SelectedVideoHosts.Count, StringFormat='{}{0} host(s) selected'}" 
+                                   FontSize="9" Opacity="0.6"/>
+                    </StackPanel>
+
+
+                    <!-- Mind Map Settings (NotebookLM-style) -->
+                    <StackPanel Spacing="12" IsVisible="{Binding ShowMindMapOptions}">
+                        <Separator Background="#333" Margin="0,5"/>
+                        <TextBlock Text="MIND MAP SETTINGS" FontWeight="Bold" FontSize="11" Opacity="0.8"/>
+                        
+                        <!-- Format (Radio Buttons) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Format" FontSize="10" Opacity="0.6" Margin="0,0,0,3"/>
+                            <StackPanel Spacing="3">
+                                <RadioButton Content="Deep Dive" IsChecked="{Binding MindMapFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Deep Dive}" GroupName="MindMapFormat"/>
+                                <RadioButton Content="Brief" IsChecked="{Binding MindMapFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Brief}" GroupName="MindMapFormat"/>
+                                <RadioButton Content="Critique" IsChecked="{Binding MindMapFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Critique}" GroupName="MindMapFormat"/>
+                                <RadioButton Content="Debate" IsChecked="{Binding MindMapFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Debate}" GroupName="MindMapFormat"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Length (Three-way Toggle) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Length" FontSize="10" Opacity="0.6" Margin="0,5,0,3"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <RadioButton Content="Short" IsChecked="{Binding MindMapLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Short}" GroupName="MindMapLength"/>
+                                <RadioButton Content="Default" IsChecked="{Binding MindMapLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Default}" GroupName="MindMapLength"/>
+                                <RadioButton Content="Long" IsChecked="{Binding MindMapLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Long}" GroupName="MindMapLength"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Focus (Text Box) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Focus" FontSize="10" Opacity="0.6" Margin="0,5,0,3"/>
+                            <TextBox Text="{Binding MindMapFocus}" 
+                                     Watermark="Focus on a specific source: Only cover the article about Italy&#x0a;Target a specific audience: Explain to someone new to biology&#x0a;Focus on topic: Mind map on characters"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="60"
+                                     MaxHeight="100"/>
+                        </StackPanel>
+                        
+                        <CheckBox IsChecked="{Binding MindMapIsEditable}" Content="Editable (Cortex only)" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- Audio Overview Settings (NotebookLM-style) -->
+                    <StackPanel Spacing="12" IsVisible="{Binding ShowAudioOptions}">
+                        <Separator Background="#333" Margin="0,5"/>
+                        <TextBlock Text="AUDIO OVERVIEW SETTINGS" FontWeight="Bold" FontSize="11" Opacity="0.8"/>
+                        
+                        <!-- Format (Radio Buttons) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Format" FontSize="10" Opacity="0.6" Margin="0,0,0,3"/>
+                            <StackPanel Spacing="3">
+                                <RadioButton Content="Deep Dive" IsChecked="{Binding AudioOverviewFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Deep Dive}" GroupName="AudioFormat"/>
+                                <RadioButton Content="Brief" IsChecked="{Binding AudioOverviewFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Brief}" GroupName="AudioFormat"/>
+                                <RadioButton Content="Critique" IsChecked="{Binding AudioOverviewFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Critique}" GroupName="AudioFormat"/>
+                                <RadioButton Content="Debate" IsChecked="{Binding AudioOverviewFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Debate}" GroupName="AudioFormat"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Length (Three-way Toggle) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Length" FontSize="10" Opacity="0.6" Margin="0,5,0,3"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <RadioButton Content="Short (3-5 min)" IsChecked="{Binding AudioOverviewLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Short}" GroupName="AudioLength"/>
+                                <RadioButton Content="Default (5-8 min)" IsChecked="{Binding AudioOverviewLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Default}" GroupName="AudioLength"/>
+                                <RadioButton Content="Long (8-12 min)" IsChecked="{Binding AudioOverviewLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Long}" GroupName="AudioLength"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Language Dropdown -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Language" FontSize="10" Opacity="0.6" Margin="0,5,0,3"/>
+                            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding AudioOverviewLanguage}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                        
+                        <!-- Focus (Text Box) -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="What should the AI hosts focus on in the episode?" FontSize="10" Opacity="0.6" Margin="0,5,0,3"/>
+                            <TextBox Text="{Binding AudioOverviewDescription}" 
+                                     Watermark="Focus on a specific source: Only cover the article about Italy&#x0a;Target a specific audience: Explain to someone new to biology"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="60"
+                                     MaxHeight="100"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Button Content="GENERATE ARTIFACT" 
+                            Command="{Binding GenerateSelectedArtifactCommand}" 
+                            HorizontalAlignment="Stretch" 
+                            Height="40" 
+                            Classes="accent"
+                            Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ARTIFACT LIBRARY -->
+            <Border Grid.Row="1" Classes="panelFrame" Padding="15">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="GENERATED LIBRARY" FontWeight="Bold" Foreground="#00FF7F" Margin="0,0,0,15"/>
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Artifacts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="core:CortexArtifact">
+                                    <Button HorizontalAlignment="Stretch" 
+                                            Background="Transparent" BorderThickness="0" 
+                                            Padding="4"
+                                            Margin="0,0,0,8"
+                                            Command="{Binding $parent[UserControl].((vm:CortexViewModel)DataContext).SetSelectedArtifactCommand}"
+                                            CommandParameter="{Binding}">
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Delete Artifact" 
+                                                         Command="{Binding $parent[UserControl].((vm:CortexViewModel)DataContext).DeleteArtifactCommand}"
+                                                         CommandParameter="{Binding}"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                        <Border Classes="panelFrame" Padding="10" Background="#1a1a1a">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <Panel Grid.Column="0" Width="40" Height="40" Margin="0,0,12,0">
+                                                    <Image Source="{Binding VisualPath}" IsVisible="{Binding !!VisualPath}" Stretch="UniformToFill"/>
+                                                    <TextBlock Text="📄" IsVisible="{Binding !VisualPath}" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"/>
+                                                </Panel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Type}" FontSize="10" Opacity="0.6"/>
+                                                </StackPanel>
+                                                <!-- Loading Indicator for Media Generation -->
+                                                <StackPanel Grid.Column="2" 
+                                                            VerticalAlignment="Center" 
+                                                            HorizontalAlignment="Right"
+                                                            Margin="8,0,0,0"
+                                                            Spacing="4"
+                                                            IsVisible="{Binding Id, Converter={StaticResource IsArtifactGeneratingMediaConverter}, ConverterParameter={Binding $parent[UserControl].((vm:CortexViewModel)DataContext)}}">
+                                                    <ProgressBar Width="20" Height="20" IsIndeterminate="True" Foreground="#00FF7F"/>
+                                                    <TextBlock Text="Generating..." FontSize="8" Opacity="0.6" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+        
+        <!-- Chat Pill (Serenity style) - At absolute bottom -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,20" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+          <controls:ChatPill DataContext="{Binding}"/>
+        </Grid>
+    </Grid>
+    
+    <!-- Quiz Modal -->
+    <Border IsVisible="{Binding ShowQuizModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="600"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Quiz" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseQuizModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Number of Questions" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <RadioButton Content="Fewer" IsChecked="{Binding QuizNumberOfQuestions, Converter={StaticResource EqualityConverter}, ConverterParameter=Fewer}" GroupName="QuizNumberOfQuestions"/>
+                        <RadioButton Content="Standard" IsChecked="{Binding QuizNumberOfQuestions, Converter={StaticResource EqualityConverter}, ConverterParameter=Standard}" GroupName="QuizNumberOfQuestions"/>
+                        <RadioButton Content="More" IsChecked="{Binding QuizNumberOfQuestions, Converter={StaticResource EqualityConverter}, ConverterParameter=More}" GroupName="QuizNumberOfQuestions"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Level of Difficulty" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <RadioButton Content="Easy" IsChecked="{Binding QuizDifficulty, Converter={StaticResource EqualityConverter}, ConverterParameter=Easy}" GroupName="QuizDifficulty"/>
+                        <RadioButton Content="Medium" IsChecked="{Binding QuizDifficulty, Converter={StaticResource EqualityConverter}, ConverterParameter=Medium}" GroupName="QuizDifficulty"/>
+                        <RadioButton Content="Hard" IsChecked="{Binding QuizDifficulty, Converter={StaticResource EqualityConverter}, ConverterParameter=Hard}" GroupName="QuizDifficulty"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding QuizLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="What should the topic be?" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding QuizDescription}" 
+                             Watermark="Things to try:&#x0a;The quiz must focus solely on key concepts of 'physics' for example&#x0a;Create a quiz to help me prepare for my history exam on ancient egypt"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseQuizModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    <!-- Flash Cards Modal -->
+    <Border IsVisible="{Binding ShowFlashCardModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="400"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Flash Cards" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseFlashCardModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Number of Cards" FontSize="11" Opacity="0.8"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Slider Value="{Binding FlashCardNumberOfCards}" Minimum="1" Maximum="50" TickFrequency="5"/>
+                        <TextBlock Grid.Column="1" Text="{Binding FlashCardNumberOfCards}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding FlashCardLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="What should the flash cards focus on?" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding FlashCardDescription}" 
+                             Watermark="Things to try:&#x0a;Create flash cards for key definitions from the research papers&#x0a;Generate cards to help me memorize historical dates and events"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseFlashCardModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    <!-- Infographic Modal -->
+    <Border IsVisible="{Binding ShowInfographicModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="500"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Infographic" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseInfographicModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Choose Orientation" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding InfographicOrientations}" 
+                              SelectedItem="{Binding InfographicOrientation}" 
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Level of Detail" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding InfographicDetailLevels}" 
+                              SelectedItem="{Binding InfographicDetailLevel}" 
+                              HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding InfographicLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Describe the infographic that you want to create:" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding InfographicDescription}" 
+                             Watermark="Describe what you want in the infographic..."
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="120"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseInfographicModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    <!-- Data Table Modal -->
+    <Border IsVisible="{Binding ShowDataTableModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="300"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Data Table" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseDataTableModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding DataTableLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="What should the data table focus on?" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding DataTableDescription}" 
+                             Watermark="Things to try: create a table with the major findings in these research papers, using columns:title,author,key result"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseDataTableModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    <!-- Slide Deck Modal -->
+    <Border IsVisible="{Binding ShowSlideDeckModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="450"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Slide Deck" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseSlideDeckModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Format" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Spacing="5">
+                        <RadioButton Content="Detailed Deck" IsChecked="{Binding SlideDeckFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Detailed Deck}" GroupName="SlideDeckFormat"/>
+                        <RadioButton Content="Presenter Slides" IsChecked="{Binding SlideDeckFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Presenter Slides}" GroupName="SlideDeckFormat"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Length" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <RadioButton Content="Short" IsChecked="{Binding SlideDeckLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Short}" GroupName="SlideDeckLength"/>
+                        <RadioButton Content="Default" IsChecked="{Binding SlideDeckLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Default}" GroupName="SlideDeckLength"/>
+                        <RadioButton Content="Long" IsChecked="{Binding SlideDeckLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Long}" GroupName="SlideDeckLength"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SlideDeckLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Describe the slide deck that you want to create:" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding SlideDeckDescription}" 
+                             Watermark="What should the slide deck focus on? (e.g., key concepts)"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseSlideDeckModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    <!-- Briefing Doc Modal -->
+    <Border IsVisible="{Binding ShowBriefingDocModal}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="500"
+                Height="500"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel Margin="20" Spacing="15">
+                <Grid>
+                    <TextBlock Text="Customize Briefing Document" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Content="✕" Click="CloseBriefingDocModal_Click" 
+                            HorizontalAlignment="Right" Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Format" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Spacing="5">
+                        <RadioButton Content="Comprehensive" IsChecked="{Binding BriefingDocFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Comprehensive}" GroupName="BriefingDocFormat"/>
+                        <RadioButton Content="Executive Summary" IsChecked="{Binding BriefingDocFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Executive Summary}" GroupName="BriefingDocFormat"/>
+                        <RadioButton Content="Tactical" IsChecked="{Binding BriefingDocFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Tactical}" GroupName="BriefingDocFormat"/>
+                        <RadioButton Content="Timeline" IsChecked="{Binding BriefingDocFormat, Converter={StaticResource EqualityConverter}, ConverterParameter=Timeline}" GroupName="BriefingDocFormat"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Length" FontSize="11" Opacity="0.8"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <RadioButton Content="Short" IsChecked="{Binding BriefingDocLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Short}" GroupName="BriefingDocLength"/>
+                        <RadioButton Content="Default" IsChecked="{Binding BriefingDocLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Default}" GroupName="BriefingDocLength"/>
+                        <RadioButton Content="Long" IsChecked="{Binding BriefingDocLength, Converter={StaticResource EqualityConverter}, ConverterParameter=Long}" GroupName="BriefingDocLength"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Tone" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding BriefingDocTones}" SelectedItem="{Binding BriefingDocTone}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Language" FontSize="11" Opacity="0.8"/>
+                    <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding BriefingDocLanguage}" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                
+                <StackPanel Spacing="10">
+                    <TextBlock Text="What should the briefing focus on?" FontSize="11" Opacity="0.8"/>
+                    <TextBox Text="{Binding BriefingDocDescription}" 
+                             Watermark="Things to try:&#x0a;Create a briefing on key stakeholders and their roles&#x0a;Generate a tactical briefing for the mission objectives"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                </StackPanel>
+                
+                <Button Content="Generate" Command="{Binding GenerateSelectedArtifactCommand}" 
+                        Classes="accent" Height="40"
+                        Click="CloseBriefingDocModal_Click"/>
+            </StackPanel>
+        </Border>
+    </Border>
+    
+    
+    <!-- Podcast Modal -->
+    <!-- Chat Overlay -->
+    <Border IsVisible="{Binding ShowChatOverlay}" 
+            Background="#80000000" 
+            HorizontalAlignment="Stretch" 
+            VerticalAlignment="Stretch"
+            ZIndex="1000"
+            PointerPressed="ChatOverlayBackground_PointerPressed">
+        <Border Background="#1e1e1e" 
+                BorderBrush="#333" 
+                BorderThickness="1" 
+                CornerRadius="8"
+                Width="700"
+                Height="600"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                PointerPressed="ChatOverlayContent_PointerPressed">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- Header -->
+                <Grid Grid.Row="0" Margin="20,15" ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Chat History" FontSize="18" FontWeight="Bold" Foreground="#00FF7F"/>
+                    <Button Grid.Column="1" Content="✕" Command="{Binding ToggleChatOverlayCommand}" 
+                            Width="30" Height="30" 
+                            Background="Transparent" BorderThickness="0"/>
+                </Grid>
+                
+                <!-- Chat Messages -->
+                <ScrollViewer Grid.Row="1" Margin="20,0" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding ChatHistory}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="core:CortexChatMessage">
+                                <Border Margin="0,0,0,15" 
+                                        Background="{Binding Kind, Converter={StaticResource ChatBgConverter}}"
+                                        CornerRadius="12" 
+                                        Padding="15"
+                                        HorizontalAlignment="{Binding Kind, Converter={StaticResource AlignmentConverter}}"
+                                        MaxWidth="550">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="{Binding Sender}" FontSize="10" Opacity="0.7" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Message}" 
+                                                   TextWrapping="Wrap" 
+                                                   Foreground="#f0f0f0"
+                                                   FontSize="13"/>
+                                        
+                                        <!-- Citations -->
+                                        <StackPanel Orientation="Horizontal" Spacing="5" IsVisible="{Binding Citations.Count, Converter={StaticResource IsGreaterThanZeroConverter}}">
+                                            <TextBlock Text="Sources: " FontSize="10" Opacity="0.6" VerticalAlignment="Center"/>
+                                            <ItemsControl ItemsSource="{Binding Citations}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="5"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="core:CortexCitation">
+                                                        <Button Click="CitationButton_Click"
+                                                                Tag="{Binding}"
+                                                                Padding="6,3"
+                                                                FontSize="10"
+                                                                Background="#2a2a2a"
+                                                                Foreground="#00FF7F"
+                                                                BorderThickness="0"
+                                                                CornerRadius="4"
+                                                                Cursor="Hand">
+                                                            <TextBlock>
+                                                                <Run Text="["/>
+                                                                <Run Text="{Binding Rank}"/>
+                                                                <Run Text="]"/>
+                                                            </TextBlock>
+                                                            <ToolTip.Tip>
+                                                                <StackPanel Spacing="3">
+                                                                    <TextBlock Text="{Binding SourceTitle}" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding PreviewText}" 
+                                                                               TextWrapping="Wrap" 
+                                                                               MaxWidth="300"
+                                                                               Opacity="0.8"
+                                                                               FontSize="10"/>
+                                                                </StackPanel>
+                                                            </ToolTip.Tip>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                
+                <!-- Footer -->
+                <Border Grid.Row="2" Background="#2a2a2a" Padding="15" CornerRadius="0,0,8,8">
+                    <TextBlock Text="Chat messages are saved with your project" 
+                               FontSize="10" 
+                               Opacity="0.6" 
+                               HorizontalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
+  </Grid>
+</UserControl>

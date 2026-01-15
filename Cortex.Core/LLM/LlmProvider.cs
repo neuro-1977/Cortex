@@ -1,4 +1,4 @@
-namespace Serenity.Cortex.Core.LLM;
+namespace Cortex.Core.LLM;
 
 public enum LlmProvider
 {
@@ -6,3 +6,4 @@ public enum LlmProvider
     Ollama,
     Grok
 }
+

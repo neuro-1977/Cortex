@@ -1,4 +1,4 @@
-namespace Serenity.Cortex.Core.LLM;
+namespace Cortex.Core.LLM;
 
 public sealed record LlmRequest(
     string Prompt,
@@ -6,3 +6,4 @@ public sealed record LlmRequest(
     double Temperature = 0.2,
     string? SystemPrompt = null
 );
+

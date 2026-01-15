@@ -26,8 +26,7 @@
 
 ### Coming Soon (Upgrades from Serenity)
 
-- 🚀 **EchoBay UI Theme:** Modern ChatPill interface and sleek Avalonia theme
-- 🚀 **Enhanced IDE Features:** Code editor, terminal, file browser
+-- 🚀 **Enhanced IDE Features:** Code editor, terminal, file browser
 - 🚀 **Advanced Code Analysis:** Scribe integration for intelligent code understanding
 - 🚀 **Automation:** Voice control and GUI automation
 - 🚀 **REST API:** Full API for integration with Serenity and other apps

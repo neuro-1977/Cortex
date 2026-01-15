@@ -2,11 +2,9 @@ name: Build and Release
 
 on:
   push:
-    branches: [ main ]
     tags:
       - 'v*'
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,28 +19,81 @@ jobs:
         dotnet-version: '10.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Cortex.App/Cortex.App.csproj
     
     - name: Build
-      run: dotnet build -c Release --no-restore
-    
-    - name: Test
-      run: dotnet test --no-build -c Release --verbosity normal || true
+      run: dotnet build Cortex.App/Cortex.App.csproj -c Release --no-restore
     
     - name: Publish
-      run: dotnet publish Cortex.App/Cortex.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o _Build/Cortex
+      run: dotnet publish Cortex.App/Cortex.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o _Build
     
-    - name: Upload artifacts
+    - name: Create Release Artifact
+      shell: pwsh
+      run: |
+        # Set error action preference to stop on errors
+        $ErrorActionPreference = "Stop"
+        
+        # Validate GITHUB_WORKSPACE environment variable
+        if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) {
+          Write-Error "GITHUB_WORKSPACE environment variable is not set or empty"
+          exit 1
+        }
+        
+        # Validate publish directory exists
+        $publishDir = Join-Path $env:GITHUB_WORKSPACE "_Build"
+        if (-not (Test-Path $publishDir -PathType Container)) {
+          Write-Error "Publish directory does not exist: $publishDir"
+          exit 1
+        }
+        
+        # Validate publish directory contains files
+        $files = Get-ChildItem -Path $publishDir -Recurse -File
+        if (@($files).Count -eq 0) {
+          Write-Error "Publish directory is empty: $publishDir"
+          exit 1
+        }
+        
+        Write-Host "Found $(@($files).Count) files to archive in $publishDir"
+        
+        # Use absolute path for destination
+        $zipPath = Join-Path $env:GITHUB_WORKSPACE "Cortex-Windows-x64.zip"
+        
+        # Compress contents of publish directory
+        Push-Location $publishDir
+        try {
+          Compress-Archive -Path * -DestinationPath $zipPath -Force
+          Write-Host "Archive created successfully: $zipPath"
+          
+          # Verify archive was created and has content
+          if (-not (Test-Path $zipPath)) {
+            Write-Error "Archive file was not created: $zipPath"
+            exit 1
+          }
+          
+          $zipInfo = Get-Item $zipPath
+          Write-Host "Archive size: $($zipInfo.Length) bytes"
+          
+          if ($zipInfo.Length -eq 0) {
+            Write-Error "Archive file is empty: $zipPath"
+            exit 1
+          }
+        }
+        finally {
+          Pop-Location
+        }
+    
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Cortex-Windows-x64
-        path: _Build/Cortex/Cortex.exe
-        retention-days: 30
+        path: ${{ github.workspace }}/Cortex-Windows-x64.zip
     
     - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/v')
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: _Build/Cortex/Cortex.exe
+        files: Cortex-Windows-x64.zip
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

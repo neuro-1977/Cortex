@@ -10,7 +10,8 @@
              xmlns:controls="clr-namespace:Cortex.App.Controls.Common"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="Cortex.App.Views.CortexView"
-             x:DataType="vm:CortexViewModel">
+             x:DataType="vm:CortexViewModel"
+             Focusable="True">
   <UserControl.Resources>
     <converters:CrewThumbnailConverter x:Key="CrewThumbnailConverter"/>
     <converters:CrewSelectionConverter x:Key="CrewSelectionConverter"/>

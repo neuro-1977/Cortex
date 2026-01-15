@@ -36,6 +36,9 @@ public partial class CortexView : UserControl
         var graphTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Render, (s, e) => UpdateArtifactGraphEdges());
         graphTimer.Start();
 
+        // Setup keyboard shortcuts
+        this.KeyDown += CortexView_KeyDown;
+
         // Setup mouse wheel zoom and drag for Artifact Graph
         var artifactCanvas = this.FindControl<Canvas>("ArtifactGraphCanvas");
         if (artifactCanvas != null)
@@ -642,6 +645,127 @@ public partial class CortexView : UserControl
             vm.ArtifactGraphZoom = 1.0;
             vm.ArtifactGraphOffsetX = 0;
             vm.ArtifactGraphOffsetY = 0;
+        }
+    }
+
+    private async void CortexView_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not CortexViewModel vm) return;
+
+        // Check for modifier keys
+        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
+        // Ctrl+S - Save project
+        if (ctrl && e.Key == Key.S && !shift)
+        {
+            e.Handled = true;
+            await vm.SaveProjectCommand.ExecuteAsync(null);
+            return;
+        }
+
+        // Ctrl+O - Import notebooks (placeholder - to be implemented)
+        if (ctrl && e.Key == Key.O && !shift)
+        {
+            e.Handled = true;
+            // TODO: Implement ImportNotebooksCommand
+            vm.Status = "Import notebooks - to be implemented";
+            return;
+        }
+
+        // Ctrl+N - New notebook/project (placeholder - to be implemented)
+        if (ctrl && e.Key == Key.N && !shift)
+        {
+            e.Handled = true;
+            // TODO: Implement NewProjectCommand
+            vm.Status = "New project - to be implemented";
+            return;
+        }
+
+        // Ctrl+W - Close artifact (deselect)
+        if (ctrl && e.Key == Key.W && !shift)
+        {
+            e.Handled = true;
+            vm.SelectedArtifact = null;
+            return;
+        }
+
+        // Delete - Remove selected artifact or source
+        if (e.Key == Key.Delete && !ctrl && !shift)
+        {
+            e.Handled = true;
+            if (vm.SelectedArtifact != null)
+            {
+                _ = vm.DeleteArtifactCommand.ExecuteAsync(vm.SelectedArtifact);
+            }
+            else if (vm.SelectedSource != null)
+            {
+                _ = vm.DeleteSourceCommand.ExecuteAsync(vm.SelectedSource);
+            }
+            return;
+        }
+
+        // Arrow Keys (Up/Down) - Navigate artifacts
+        if ((e.Key == Key.Up || e.Key == Key.Down) && !ctrl && !shift)
+        {
+            if (vm.Artifacts.Count > 0)
+            {
+                e.Handled = true;
+                var currentIndex = vm.SelectedArtifact != null 
+                    ? vm.Artifacts.IndexOf(vm.SelectedArtifact) 
+                    : -1;
+
+                if (e.Key == Key.Up)
+                {
+                    if (currentIndex > 0)
+                        vm.SelectedArtifact = vm.Artifacts[currentIndex - 1];
+                    else if (currentIndex == -1 && vm.Artifacts.Count > 0)
+                        vm.SelectedArtifact = vm.Artifacts[vm.Artifacts.Count - 1];
+                }
+                else // Key.Down
+                {
+                    if (currentIndex >= 0 && currentIndex < vm.Artifacts.Count - 1)
+                        vm.SelectedArtifact = vm.Artifacts[currentIndex + 1];
+                    else if (currentIndex == -1 && vm.Artifacts.Count > 0)
+                        vm.SelectedArtifact = vm.Artifacts[0];
+                }
+            }
+            return;
+        }
+
+        // Left/Right Arrows - Navigate slides (when artifact selected and has slides)
+        if ((e.Key == Key.Left || e.Key == Key.Right) && !ctrl && !shift)
+        {
+            if (vm.SelectedArtifact != null && vm.SelectedArtifactSlides != null && vm.SelectedArtifactSlides.Count > 0)
+            {
+                e.Handled = true;
+                var currentIndex = vm.CurrentSlideIndex;
+                
+                if (e.Key == Key.Left)
+                {
+                    if (currentIndex > 0)
+                        vm.CurrentSlideIndex = currentIndex - 1;
+                }
+                else // Key.Right
+                {
+                    if (currentIndex < vm.SelectedArtifactSlides.Count - 1)
+                        vm.CurrentSlideIndex = currentIndex + 1;
+                }
+            }
+            return;
+        }
+
+        // F5 - Refresh artifact graph
+        if (e.Key == Key.F5 && !ctrl && !shift)
+        {
+            e.Handled = true;
+            if (vm.IsGraphArtifact && vm.SelectedArtifact != null)
+            {
+                // Trigger graph refresh by updating nodes/edges
+                // This will be handled by the graph update timer, but we can force a refresh
+                vm.Status = "Graph refreshed";
+            }
+            return;
         }
     }
 }

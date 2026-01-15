@@ -534,6 +534,77 @@ public partial class CortexView : UserControl
         FileHelper.ShellOpen(outputPath);
     }
 
+    private async void ImportNotebooks_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not CortexViewModel vm) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Import notebooks",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } },
+                Avalonia.Platform.Storage.FilePickerFileTypes.All
+            }
+        });
+
+        if (files.Count > 0)
+        {
+            var file = files[0];
+            string? path = null;
+            var pathProperty = file.GetType().GetProperty("Path");
+            if (pathProperty != null)
+            {
+                var uri = pathProperty.GetValue(file) as Uri;
+                if (uri != null)
+                {
+                    path = uri.LocalPath;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                await vm.ImportNotebooksFromFileAsync(path);
+            }
+        }
+    }
+
+    private async void ExportNotebooks_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not CortexViewModel vm) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel == null) return;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            Title = "Export notebooks",
+            SuggestedFileName = "cortex_projects.json",
+            FileTypeChoices = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType("JSON Files") { Patterns = new[] { "*.json" } },
+                Avalonia.Platform.Storage.FilePickerFileTypes.All
+            }
+        });
+
+        if (file != null)
+        {
+            var pathProperty = file.GetType().GetProperty("Path");
+            if (pathProperty?.GetValue(file) is Uri uri)
+            {
+                var path = uri.LocalPath;
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    await vm.ExportNotebooksToFileAsync(path);
+                }
+            }
+        }
+    }
+
     private async void TxtInput_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
@@ -664,21 +735,19 @@ public partial class CortexView : UserControl
             return;
         }
 
-        // Ctrl+O - Import notebooks (placeholder - to be implemented)
+        // Ctrl+O - Import notebooks
         if (ctrl && e.Key == Key.O && !shift)
         {
             e.Handled = true;
-            // TODO: Implement ImportNotebooksCommand
-            vm.Status = "Import notebooks - to be implemented";
+            ImportNotebooks_Click(null, e);
             return;
         }
 
-        // Ctrl+N - New notebook/project (placeholder - to be implemented)
+        // Ctrl+N - New notebook/project
         if (ctrl && e.Key == Key.N && !shift)
         {
             e.Handled = true;
-            // TODO: Implement NewProjectCommand
-            vm.Status = "New project - to be implemented";
+            await vm.NewProjectCommand.ExecuteAsync(null);
             return;
         }
 

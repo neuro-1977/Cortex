@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Guid;
 
 namespace Cortex.App.ViewModels;
 
@@ -464,6 +465,137 @@ public sealed partial class CortexViewModel : ObservableObject
         {
             ErrorHandlingService.HandleException(ex, "CortexViewModel.SaveProject");
             Status = $"Error saving project: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportNotebooksAsync()
+    {
+        try
+        {
+            // This will be called from code-behind with file picker
+            Status = "Import notebooks - use file picker";
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.ImportNotebooks");
+            Status = $"Error importing notebooks: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportNotebooksAsync()
+    {
+        try
+        {
+            // This will be called from code-behind with file picker
+            Status = "Export notebooks - use file picker";
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.ExportNotebooks");
+            Status = $"Error exporting notebooks: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task NewProjectAsync()
+    {
+        try
+        {
+            // Create new project
+            var newProject = new CortexProject 
+            { 
+                Name = "New Project",
+                Id = Guid.NewGuid().ToString()
+            };
+            
+            // Clear current collections
+            Sources.Clear();
+            Artifacts.Clear();
+            ChatHistory.Clear();
+            
+            // Set new project
+            CurrentProject = newProject;
+            
+            // Save it
+            await _store.SaveProjectAsync(newProject);
+            Status = "Created new project";
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.NewProject");
+            Status = $"Error creating new project: {ex.Message}";
+        }
+    }
+
+    public async Task ImportNotebooksFromFileAsync(string filePath)
+    {
+        try
+        {
+            var importedProjects = await _store.ImportAsync(filePath);
+            if (importedProjects.Count > 0)
+            {
+                // Merge imported projects with existing ones
+                var allProjects = await _store.LoadAsync();
+                foreach (var project in importedProjects)
+                {
+                    // Check if project with same ID exists
+                    var existing = allProjects.FirstOrDefault(p => p.Id == project.Id);
+                    if (existing != null)
+                    {
+                        // Update existing project
+                        var index = allProjects.IndexOf(existing);
+                        allProjects[index] = project;
+                    }
+                    else
+                    {
+                        // Add new project
+                        allProjects.Add(project);
+                    }
+                }
+                
+                // Save all projects
+                await _store.SaveAsync(allProjects);
+                
+                // Load the first imported project
+                if (importedProjects.Count > 0)
+                {
+                    CurrentProject = importedProjects[0];
+                    Sources.Clear();
+                    Artifacts.Clear();
+                    ChatHistory.Clear();
+                    foreach (var src in CurrentProject.Sources) Sources.Add(src);
+                    foreach (var art in CurrentProject.Artifacts) Artifacts.Add(art);
+                    foreach (var msg in CurrentProject.ChatHistory) ChatHistory.Add(msg);
+                }
+                
+                Status = $"Imported {importedProjects.Count} project(s)";
+            }
+            else
+            {
+                Status = "No projects found in import file";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.ImportNotebooksFromFile");
+            Status = $"Error importing notebooks: {ex.Message}";
+        }
+    }
+
+    public async Task ExportNotebooksToFileAsync(string filePath)
+    {
+        try
+        {
+            var allProjects = await _store.LoadAsync();
+            await _store.ExportAsync(allProjects, filePath);
+            Status = $"Exported {allProjects.Count} project(s) to {System.IO.Path.GetFileName(filePath)}";
+        }
+        catch (Exception ex)
+        {
+            ErrorHandlingService.HandleException(ex, "CortexViewModel.ExportNotebooksToFile");
+            Status = $"Error exporting notebooks: {ex.Message}";
         }
     }
 }

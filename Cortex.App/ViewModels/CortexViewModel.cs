@@ -16,7 +16,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Guid;
 
 namespace Cortex.App.ViewModels;
 
